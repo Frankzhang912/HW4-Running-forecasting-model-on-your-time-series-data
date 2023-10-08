@@ -1,0 +1,145 @@
+---
+title: "HW4 forecasting models on EPV dataset"
+output: html_document
+date: "2023-10-04"
+---
+
+```{r}
+library(fpp)
+library(fpp2)
+library(TTR)
+library(readxl)
+EPV_ts_ChinaUS_18_23 <- read_excel("EPV_ts ChinaUS 18-23.xlsx")
+```
+
+# Create time series
+```{r}
+EPV_ts<-ts(EPV_ts_ChinaUS_18_23$`Value in billion dollars`,frequency = 12,start = c(2018,9))
+attributes(EPV_ts)
+plot(EPV_ts)
+```
+
+### Forecasting methods
+# take Mean of all available history
+```{r}
+mean_forecast <- meanf(EPV_ts,6)
+plot(mean_forecast)
+```
+
+# Naive
+```{r}
+naive_forecast <- naive(EPV_ts,6)
+plot(naive_forecast)
+```
+
+# Random Walk
+```{r}
+rwf_forecast <- rwf(EPV_ts,6)
+rwf_forecast <- rwf(EPV_ts,6, drift=TRUE)
+plot(rwf_forecast)
+```
+
+# Seasonal Naive
+```{r}
+snaive_forecast <- snaive(EPV_ts,6)
+```
+
+# plot all of these togather
+```{r}
+plot(mean_forecast)
+lines(naive_forecast$mean,col="red")
+lines(snaive_forecast$mean,col="green")
+lines(rwf_forecast$mean,col="black")
+```
+
+# what other attributes are there?
+```{r}
+attributes(naive_forecast)
+```
+
+# now do a drift with RWF
+```{r}
+rwf_forecast <- rwf(EPV_ts,6, drift=TRUE)
+plot(mean_forecast)
+lines(naive_forecast$mean,col="red")
+lines(rwf_forecast$mean,col="green")
+lines(snaive_forecast$mean,col="black")
+
+```
+
+# moving averages
+```{r}
+plot(mean_forecast)
+MA5_forecast <- ma(EPV_ts,order=5)
+lines(MA5_forecast,col="Pink")
+MA9_forecast <- ma(EPV_ts,order=9)
+lines(MA9_forecast,col="Blue")
+```
+
+# Holts Winters and SSE
+```{r}
+HW_forecast <- HoltWinters(EPV_ts)
+plot(HW_forecast)
+SSE_Simple <- HoltWinters(EPV_ts,beta=FALSE,gamma=FALSE)
+attributes(SSE_Simple)
+plot(SSE_Simple)
+SSE_Simple$SSE
+head(SSE_Simple$fitted)
+```
+
+#Do a SSE
+```{r}
+HoltWinters(EPV_ts,beta=FALSE,gamma=FALSE)
+SSE_Simple <- HoltWinters(EPV_ts,beta=FALSE,gamma=FALSE)
+attributes(SSE_Simple)
+plot(SSE_Simple)
+SSE_Simple$SSE
+SSE_Simple$fitted
+```
+
+# Lets do SSE with Trend
+```{r}
+SSE_Trend <- HoltWinters(EPV_ts,gamma=FALSE)
+plot(SSE_Trend)
+SSE_Trend
+attributes(SSE_Trend)
+SSE_Trend$SSE # check the residual error magnitude
+```
+
+# SSE with trend plus seasonality
+```{r}
+SSE_Winters <- HoltWinters(EPV_ts)
+SSE_Winters$SSE
+plot(SSE_Winters)
+```
+
+# lets play with ETS
+```{r}
+ets(EPV_ts)
+ets_forecast <- ets(EPV_ts)
+attributes(ets)
+attributes(ets_forecast)
+ets_forecast$mse
+```
+
+# how do we forecast now!!
+```{r}
+forecast.ets(ets_forecast, h=6)
+forecast_ets <- forecast.ets(ets_forecast, h=6)
+forecast_MA5 <- forecast(MA5_forecast,h=6)
+forecasr_MA9 <- forecast(MA9_forecast,h=6)
+plot(forecast_ets)
+lines(MA5_forecast,col="pink")
+lines(MA9_forecast,col="blue")
+```
+
+#Pick an accuracy measure, compare your models, and state the best model based on the accuracy comparison
+```{r}
+accuracy(forecast_ets)
+accuracy(rwf_forecast)
+accuracy(naive_forecast)
+accuracy(snaive_forecast)
+accuracy(forecast_MA5)
+accuracy(forecasr_MA9)
+```
+#Moving Average 9 seems to be the best model due to its lowest MAE at 4.31

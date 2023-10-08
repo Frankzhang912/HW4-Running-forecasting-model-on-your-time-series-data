@@ -19,24 +19,24 @@ attributes(EPV_ts)
 plot(EPV_ts)
 ```
 
-### Forecasting methods
+## Forecasting methods
 # take Mean of all available history
 ```{r}
 mean_forecast <- meanf(EPV_ts,6)
-plot(mean_forecast)
+plot(mean_forecast,main="6 months mean forecast of Export values between China and US",ylab="EPV in billion $",xlab="forecast from Aug 2023 - Feb 2024")
 ```
 
 # Naive
 ```{r}
 naive_forecast <- naive(EPV_ts,6)
-plot(naive_forecast)
+plot(naive_forecast,main="6 months naive forecast of Export values between China and US",ylab="EPV in billion $",xlab = "forecast from Aug 2023 - Feb 2024")
 ```
 
 # Random Walk
 ```{r}
 rwf_forecast <- rwf(EPV_ts,6)
 rwf_forecast <- rwf(EPV_ts,6, drift=TRUE)
-plot(rwf_forecast)
+plot(rwf_forecast,main="6 months random walk forecast of Export values between China and US",ylab="EPV in billion $",xlab = "forecast from Aug 2023 - Feb 2024")
 ```
 
 # Seasonal Naive
@@ -44,7 +44,7 @@ plot(rwf_forecast)
 snaive_forecast <- snaive(EPV_ts,6)
 ```
 
-# plot all of these togather
+# Plot all of these togather
 ```{r}
 plot(mean_forecast)
 lines(naive_forecast$mean,col="red")
@@ -52,12 +52,12 @@ lines(snaive_forecast$mean,col="green")
 lines(rwf_forecast$mean,col="black")
 ```
 
-# what other attributes are there?
+# What other attributes are there?
 ```{r}
 attributes(naive_forecast)
 ```
 
-# now do a drift with RWF
+# Now do a drift with RWF
 ```{r}
 rwf_forecast <- rwf(EPV_ts,6, drift=TRUE)
 plot(mean_forecast)
@@ -67,9 +67,9 @@ lines(snaive_forecast$mean,col="black")
 
 ```
 
-# moving averages
+# Moving Averages
 ```{r}
-plot(mean_forecast)
+plot(mean_forecast,main="6 months moving average forecast of Export values between China and US",ylab="EPV in billion $",xlab = "forecast from Aug 2023 - Feb 2024")
 MA5_forecast <- ma(EPV_ts,order=5)
 lines(MA5_forecast,col="Pink")
 MA9_forecast <- ma(EPV_ts,order=9)
@@ -79,20 +79,20 @@ lines(MA9_forecast,col="Blue")
 # Holts Winters and SSE
 ```{r}
 HW_forecast <- HoltWinters(EPV_ts)
-plot(HW_forecast)
+plot(HW_forecast,main="6 months Holt winters forecast of Export values between China and US",ylab="EPV in billion $",xlab = "forecast from Aug 2023 - Feb 2024")
 SSE_Simple <- HoltWinters(EPV_ts,beta=FALSE,gamma=FALSE)
 attributes(SSE_Simple)
-plot(SSE_Simple)
+plot(SSE_Simple,main="6 months SSE forecast of Export values between China and US",ylab="EPV in billion $",xlab = "forecast from Aug 2023 - Feb 2024")
 SSE_Simple$SSE
 head(SSE_Simple$fitted)
 ```
 
-#Do a SSE
+# Do a SSE
 ```{r}
 HoltWinters(EPV_ts,beta=FALSE,gamma=FALSE)
 SSE_Simple <- HoltWinters(EPV_ts,beta=FALSE,gamma=FALSE)
 attributes(SSE_Simple)
-plot(SSE_Simple)
+plot(SSE_Simple,)
 SSE_Simple$SSE
 SSE_Simple$fitted
 ```
@@ -122,19 +122,21 @@ attributes(ets_forecast)
 ets_forecast$mse
 ```
 
-# how do we forecast now!!
+# Exponential smoothing
 ```{r}
 forecast.ets(ets_forecast, h=6)
 forecast_ets <- forecast.ets(ets_forecast, h=6)
 forecast_MA5 <- forecast(MA5_forecast,h=6)
 forecasr_MA9 <- forecast(MA9_forecast,h=6)
-plot(forecast_ets)
+plot(forecast_ets,main="6 months exponential smoothing forecast of Export values between China and US",ylab="EPV in billion $",xlab = "forecast from Aug 2023 - Feb 2024")
 lines(MA5_forecast,col="pink")
 lines(MA9_forecast,col="blue")
 ```
 
-#Pick an accuracy measure, compare your models, and state the best model based on the accuracy comparison
+# Pick an accuracy measure, compare your models, and state the best model based on the accuracy comparison
 ```{r}
+#Moving Average 9 seems to be the best model due to its lowest MAE at 4.31
+accuracy(mean_forecast)
 accuracy(forecast_ets)
 accuracy(rwf_forecast)
 accuracy(naive_forecast)
@@ -142,4 +144,15 @@ accuracy(snaive_forecast)
 accuracy(forecast_MA5)
 accuracy(forecasr_MA9)
 ```
-#Moving Average 9 seems to be the best model due to its lowest MAE at 4.31
+
+## Expalin the model output (#Specific forecasted value for each month is shown and so are the 80 and 95 confidence interval ranges. Same thing goes with the rest models. Thanks!)
+```{r}
+print(mean_forecast)# One example of interpretation: Based on the mean model, the forecast value is 248.7039. But, there's uncertainty. That is, 80% confidence interval shows there's an 80% chance the actual vlaue will be between 163.57 to 333.83, whereas it might fall between 117.27 to 380.13 as shown by 95% CI.
+
+print(forecast_ets)
+print(rwf_forecast) 
+print(naive_forecast)
+print(snaive_forecast)
+print(forecast_MA5)
+print(forecasr_MA9)
+```

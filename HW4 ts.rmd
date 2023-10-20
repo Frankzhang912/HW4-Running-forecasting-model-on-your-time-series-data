@@ -1,0 +1,172 @@
+---
+title: "HW4 ts"
+output: html_document
+date: "2023-10-04"
+---
+Guijiu Zhang
+
+```{r}
+library(fpp)
+library(fpp2)
+library(TTR)
+library(readxl)
+
+EPV_ts_China <- read_excel("EPV_ts China.xlsx")
+View(EPV_ts_China)
+```
+
+# Step1: Create time series
+# Step2: create an Acf plot and look for patterns (stationary,seasonality,trend,random)
+```{r}
+EPV_ts<-ts(EPV_ts_China$`Value in billion dollars`,frequency = 12,start = c(2018,9))
+attributes(EPV_ts)
+plot(EPV_ts)
+Acf(EPV_ts) 
+
+# There seems to be a relationship between China's total export value and time because he significance line is slightly higher than 0.2.
+# the ACF(autocorrelation function) plot provides insights into the temporal dependencies within the data. The y-axis represents autocorrelation coefficients, and the x-axis represents lags.
+# There are no trend or stationary components in the Acf plot due to the lack of trends of gradually declining or increasing autocorrelation values with increasing lags and stationary pattern, as there are spikes in lag 11 and 12. But, it seems there is some seasonality given that one of the spikes surpasses 0.2. That is, total export value would significantly increase each december from 2018 to 2022
+```
+
+# Step3: Use forecasting methods
+# take Mean of all available history
+```{r}
+mean_forecast <- meanf(EPV_ts,6)
+plot(mean_forecast,main="6 months mean forecast of total Export values of China",ylab="EPV in billion $",xlab="forecast from Aug 2023 - Feb 2024")
+
+# Arithmetic mean ignores the most recent trends but emphasizes historical data. If fluctuations are truly random (no trend & seasonality), Arithmetic mean is the best model. The arithmetic mean outperforms last period value on both MAD  and MSE. Here, the total export values of China are very likely to drop from around $280 Billion to $250 Billion in a half-year duration since Aug 2023. 
+```
+
+# Naive
+```{r}
+naive_forecast <- naive(EPV_ts,6)
+plot(naive_forecast,main="6 months naive forecast of total Export values of CHina",ylab="EPV in billion $",xlab = "forecast from Aug 2023 - Feb 2024")
+
+# "Last period value" chases the most recent trends but ignores historical data. If fluctuations are not random (there is a trend or seasonality), the Last period value can be better than the arithmetic mean. Here, we expect the export values of the country from Aug 2023 to Feb 2024 to be on the same level as of July 2023.
+```
+
+# Random Walk
+```{r}
+rwf_forecast <- rwf(EPV_ts,6)
+rwf_forecast <- rwf(EPV_ts,6, drift=TRUE)
+plot(rwf_forecast,main="6 months random walk forecast of total Export values of CHina",ylab="EPV in billion $",xlab = "forecast from Aug 2023 - Feb 2024")
+
+# Very similar to LPV, except for that this model assumes that in each period the variable takes a random step away from its previous value. Still, the export values of China under this forecast are expected to be around $280 Billion
+```
+
+# Seasonal Naive
+```{r}
+snaive_forecast <- snaive(EPV_ts,6)
+```
+
+# Plot all of these togather
+```{r}
+plot(mean_forecast)
+lines(naive_forecast$mean,col="red")
+lines(snaive_forecast$mean,col="green")
+lines(rwf_forecast$mean,col="black")
+
+# Seasonal naive explanation: In this case, we set each forecast to equal the last observed value from the same season (e.g., the same month of the previous year). For instance, in Feb 2023 the export values of China dropped to around $220 Billion, and we expect the same to happen in Feb 2024
+```
+
+# What other attributes are there?
+```{r}
+attributes(naive_forecast)
+```
+
+# Now do a drift with RWF
+```{r}
+rwf_forecast <- rwf(EPV_ts,6, drift=TRUE)
+plot(mean_forecast)
+lines(naive_forecast$mean,col="red")
+lines(rwf_forecast$mean,col="green")
+lines(snaive_forecast$mean,col="black")
+
+```
+
+# Moving Averages
+```{r}
+MA5_forecast <- ma(EPV_ts,order=5)
+MA9_forecast <- ma(EPV_ts,order=9)
+plot(mean_forecast,main="6 months moving average forecast of Export values of China",ylab="EPV in billion $",xlab = "forecast from Aug 2023 - Feb 2024")
+lines(MA5_forecast,col="pink")
+lines(MA9_forecast,col="blue")
+
+# MA5 means that actual values from the previous 5 periods are divided by 5. MA5 focuses more on recen data and are more responsive. Order 9 focuses more on historical data
+```
+
+# Holts Winters and SSE
+```{r}
+HW_forecast <- HoltWinters(EPV_ts)
+plot(HW_forecast,main="6 months Holt winters forecast of Export values of CHina",ylab="EPV in billion $",xlab = "forecast from Aug 2023 - Feb 2024")
+SSE_Simple <- HoltWinters(EPV_ts,beta=FALSE,gamma=FALSE)
+attributes(SSE_Simple)
+plot(SSE_Simple,main="6 months SSE forecast of Export values of china",ylab="EPV in billion $",xlab = "forecast from Aug 2023 - Feb 2024")
+SSE_Simple$SSE
+head(SSE_Simple$fitted)
+```
+
+# Do a SSE (simple exponential smoothing) Holtwinter
+```{r}
+HoltWinters(EPV_ts,beta=FALSE,gamma=FALSE)
+SSE_Simple <- HoltWinters(EPV_ts,beta=FALSE,gamma=FALSE)
+attributes(SSE_Simple)
+plot(SSE_Simple)
+SSE_Simple$SSE
+SSE_Simple$fitted
+
+## Explain model output:the alpha is the coefficient of the recent observation. If alpha is less than 0.5, then the result of the forecast emphasizes more on historical data. Otherwise, it focuses more on recent data. In this case, alpha of 0.519 means that the forecast of the future 6 months of export value of China focuses more on recent data
+```
+
+# SSE(simple exponential smoothing) with Trend
+
+# alpha: 0.6472377 beta : 0.03163056
+```{r}
+SSE_Trend <- HoltWinters(EPV_ts,gamma=FALSE)
+plot(SSE_Trend)
+SSE_Trend
+attributes(SSE_Trend)
+SSE_Trend$SSE # check the residual error magnitude
+```
+
+# SSE with trend plus seasonality
+
+# alpha: 0.3218976beta 0.02336095 gamma: 1
+```{r}
+SSE_Winters <- HoltWinters(EPV_ts)
+SSE_Winters$SSE
+plot(SSE_Winters)
+```
+
+# ETS
+```{r}
+ets(EPV_ts)
+ets_forecast <- ets(EPV_ts)
+attributes(ets)
+attributes(ets_forecast)
+ets_forecast$mse
+```
+
+# Exponential smoothing
+```{r}
+forecast.ets(ets_forecast, h=6)
+forecast_ets <- forecast.ets(ets_forecast, h=6)
+forecast_MA5 <- forecast(MA5_forecast,h=6)
+forecast_MA9 <- forecast(MA9_forecast,h=6)
+  plot(forecast_ets,main="6 months ETS forecast of total Export values of china",ylab="EPV in billion $",xlab = "forecast from Aug 2023 - Feb 2024")
+lines(MA5_forecast,col="pink")
+lines(MA9_forecast,col="blue")
+```
+
+#Step 4: Pick an accuracy measure
+```{r}
+accuracy(mean_forecast)
+accuracy(forecast_ets)
+accuracy(rwf_forecast)
+accuracy(naive_forecast)
+accuracy(snaive_forecast)
+accuracy(forecast_MA5)
+accuracy(forecast_MA9)
+
+#Moving Average 9 seems to be the best model due to its lowest MAE at 4.31. A forecast model with the lowest Mean Absolute Error (MAE) is often considered the best among the models being compared in terms of MAE. MAE measures the average magnitude of errors between the forecasts and the actual observed values.
+```
